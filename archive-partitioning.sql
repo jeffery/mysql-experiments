@@ -2,57 +2,64 @@ DROP TABLE if exists no_partition_table;
 
 CREATE TABLE no_partition_table
 (
-  c1 int(11) default NULL,
-  c2 varchar(30) default NULL,
-  c3 date default NULL
+  dataSerial int(11) default NULL,
+  description varchar(30) default NULL,
+  createdDate date default NULL
 ) engine=MYISAM;
 
 DROP TABLE if exists partition_myisam_table;
 
 CREATE TABLE partition_myisam_table
 (
-  c1 int default NULL,
-  c2 varchar(30) default NULL,
-  c3 date default NULL
+  dataSerial int default NULL,
+  description varchar(30) default NULL,
+  createdDate date default NULL
 ) engine=MYISAM
-PARTITION BY RANGE ( year( c3 ) ) (
-  PARTITION p0 VALUES LESS THAN (1995),
-  PARTITION p1 VALUES LESS THAN (1996),
-  PARTITION p2 VALUES LESS THAN (1997),
-  PARTITION p3 VALUES LESS THAN (1998),
-  PARTITION p4 VALUES LESS THAN (1999),
-  PARTITION p5 VALUES LESS THAN (2000),
-  PARTITION p6 VALUES LESS THAN (2001),
-  PARTITION p7 VALUES LESS THAN (2002),
-  PARTITION p8 VALUES LESS THAN (2003),
-  PARTITION p9 VALUES LESS THAN (2004),
-  PARTITION p10 VALUES LESS THAN (2010),
+PARTITION BY RANGE ( year( createdDate ) ) (
+  PARTITION p0 VALUES LESS THAN (2003),
+  PARTITION p1 VALUES LESS THAN (2004),
+  PARTITION p2 VALUES LESS THAN (2005),
+  PARTITION p3 VALUES LESS THAN (2006),
+  PARTITION p4 VALUES LESS THAN (2007),
+  PARTITION p5 VALUES LESS THAN (2008),
+  PARTITION p6 VALUES LESS THAN (2009),
+  PARTITION p7 VALUES LESS THAN (2010),
+  PARTITION p8 VALUES LESS THAN (2011),
+  PARTITION p9 VALUES LESS THAN (2012),
+  PARTITION p10 VALUES LESS THAN (2013),
   PARTITION p11 VALUES LESS THAN MAXVALUE
 );
 
 DROP TABLE if exists partition_archive_table;
 CREATE TABLE partition_archive_table (
-  c1 int(11) not null ,
-  c2 varchar(30) default NULL,
-  c3 date default NULL
--- unique key (c1)
+  dataSerial int(11) not null ,
+  description varchar(30) default NULL,
+  createdDate date default NULL
+-- unique key (dataSerial)
 ) ENGINE=ARCHIVE DEFAULT CHARSET=latin1
-PARTITION BY RANGE ( year( c3 ) )
+PARTITION BY RANGE ( year( createdDate ) )
 (
-  PARTITION p0 VALUES LESS THAN (1995),
-  PARTITION p1 VALUES LESS THAN (1996),
-  PARTITION p2 VALUES LESS THAN (1997),
-  PARTITION p3 VALUES LESS THAN (1998),
-  PARTITION p4 VALUES LESS THAN (1999),
-  PARTITION p5 VALUES LESS THAN (2000),
-  PARTITION p6 VALUES LESS THAN (2001),
-  PARTITION p7 VALUES LESS THAN (2002),
-  PARTITION p8 VALUES LESS THAN (2003),
-  PARTITION p9 VALUES LESS THAN (2004),
-  PARTITION p10 VALUES LESS THAN (2010),
+  PARTITION p0 VALUES LESS THAN (2003),
+  PARTITION p1 VALUES LESS THAN (2004),
+  PARTITION p2 VALUES LESS THAN (2005),
+  PARTITION p3 VALUES LESS THAN (2006),
+  PARTITION p4 VALUES LESS THAN (2007),
+  PARTITION p5 VALUES LESS THAN (2008),
+  PARTITION p6 VALUES LESS THAN (2009),
+  PARTITION p7 VALUES LESS THAN (2010),
+  PARTITION p8 VALUES LESS THAN (2011),
+  PARTITION p9 VALUES LESS THAN (2012),
+  PARTITION p10 VALUES LESS THAN (2013),
   PARTITION p11 VALUES LESS THAN MAXVALUE
   ENGINE = ARCHIVE
 );
+
+DROP TABLE if exists archive_table;
+CREATE TABLE archive_table (
+  dataSerial int(11) not null ,
+  description varchar(30) default NULL,
+  createdDate date default NULL
+) ENGINE=ARCHIVE;
 
 
 delimiter //
@@ -91,7 +98,7 @@ begin
       @query,
       '(', v, ',',
       '"testing partitions"',',"',
-      adddate('1995-01-01',( rand( v ) * 36520 ) mod 3652 ), '")'
+      adddate('2003-01-01',( rand( v ) * 36520 ) mod 3652 ), '")'
     );
     set v = v + 1;
     set counter = counter + 1;
@@ -110,7 +117,8 @@ delimiter ;
 call load_partition_myisam_table( 10000000, 1000 );
 insert into no_partition_table select * from partition_myisam_table;
 insert into partition_archive_table select * from partition_myisam_table;
+insert into archive_table select * from partition_myisam_table;
 
-select  count(*) from no_partition_table where c3 > date '1995-01-01' and c3 < date '1995-12-31';
-select  count(*) from partition_myisam_table where c3 > date '1995-01-01' and c3 < date '1995-12-31';
-select  count(*) from partition_archive_table where c3 > date '1995-01-01' and c3 < date '1995-12-31';
+select  count(*) from no_partition_table where createdDate > date '2003-01-01' and createdDate < date '2003-12-31';
+select  count(*) from partition_myisam_table where createdDate > date '2003-01-01' and createdDate < date '2003-12-31';
+select  count(*) from partition_archive_table where createdDate > date '2003-01-01' and createdDate < date '2003-12-31';

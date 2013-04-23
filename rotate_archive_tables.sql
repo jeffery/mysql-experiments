@@ -21,16 +21,17 @@ BEGIN
                                           information_schema.columns b
                                     WHERE a.table_name = b.table_name
                                       AND a.engine = 'archive'
-                                      AND b.column_name = 'date_string';
+                                      AND a.table_name = 'archive_table';
    DECLARE CONTINUE HANDLER FOR SQLSTATE '02000' SET done = 1;
 
-   -- if p_retention_days is null, we keep 7 days
+   -- if p_retention_days is null, we keep 365 days
    IF (p_retention_days IS NULL) THEN
-     SET p_retention_days = 7;
+     SET p_retention_days = 365;
    END IF;
 
+
    -- get the cutoff date - this is p_retention_days from midnight
-   SELECT DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL p_retention_days DAY),'%Y%m%d%H%i')
+   SELECT DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL p_retention_days DAY),'%Y-%m-%d')
      INTO l_cutoff_date;
 
    -- OPEN CURSOR
@@ -56,7 +57,7 @@ BEGIN
       DEALLOCATE PREPARE sqlquery;
 
       -- COPY LAST 7 DAYS DATA BACK INTO THE SOURCE TABLE
-      SET sql_reload_table = CONCAT('INSERT INTO `',l_table_name,'` SELECT * FROM `old_',l_table_name,'` WHERE date_string >= ',l_cutoff_date);
+      SET sql_reload_table = CONCAT('INSERT INTO `',l_table_name,'` SELECT * FROM `old_',l_table_name,'` WHERE createdDate >= ',l_cutoff_date);
       -- SELECT sql_reload_table;
       SET @sqlstatement = sql_reload_table;
       PREPARE sqlquery FROM @sqlstatement;
@@ -79,3 +80,6 @@ BEGIN
 END $$
 
 DELIMITER ;
+
+-- insert into archive_table select * from partition_myisam_table;
+call rotate_archive_tables( 1825 );
