@@ -24,7 +24,7 @@ CREATE PROCEDURE setupProcedureLog( )
 			TRUNCATE TABLE procedureLog;
 		END IF;
 
-		CREATE TEMPORARY TABLE IF NOT EXISTS tmp_procedureLog (
+		CREATE TEMPORARY TABLE IF NOT EXISTS procedureLogMemory (
 			id           INT(2) UNSIGNED NOT NULL AUTO_INCREMENT,
 			logTime      TIMESTAMP,
 			connectionId INT             NOT NULL DEFAULT 0,
@@ -43,11 +43,11 @@ CREATE PROCEDURE procedureLog( IN logMsg VARCHAR(512) )
 		DECLARE CONTINUE HANDLER FOR SQLSTATE '42S02' -- Table not found
 		BEGIN
 			CALL setupProcedureLog( );
-			INSERT INTO tmp_procedureLog (connectionId, logMessage) VALUES (connection_id( ), 'Start Log');
-			INSERT INTO tmp_procedureLog (connectionId, logMessage) VALUES (connection_id( ), logMsg);
+			INSERT INTO procedureLogMemory (connectionId, logMessage) VALUES (connection_id( ), 'Start Log');
+			INSERT INTO procedureLogMemory (connectionId, logMessage) VALUES (connection_id( ), logMsg);
 		END;
 
-		INSERT INTO tmp_procedureLog (connectionId, logMessage) VALUES (connection_id( ), logMsg);
+		INSERT INTO procedureLogMemory (connectionId, logMessage) VALUES (connection_id( ), logMsg);
 	END
 //
 
@@ -59,8 +59,8 @@ CREATE PROCEDURE refreshProcedureLog( )
 		INSERT INTO procedureLog
 			SELECT
 				*
-			FROM tmp_procedureLog;
-		DROP TABLE tmp_procedureLog;
+			FROM procedureLogMemory;
+		DROP TABLE procedureLogMemory;
 	END
 //
 
