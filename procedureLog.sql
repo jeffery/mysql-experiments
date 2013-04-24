@@ -13,13 +13,15 @@ CREATE PROCEDURE setupProcedureLog( )
 
 		IF procedureLogExists = 0
 		THEN
-			CREATE TABLE IF NOT EXISTS procedureLog (
+			CREATE TABLE procedureLog (
 				id           INT(2) UNSIGNED NOT NULL AUTO_INCREMENT,
 				logTime      DATETIME,
 				connectionId INT             NOT NULL DEFAULT 0,
 				logMessage   VARCHAR(512),
 				PRIMARY KEY (id)
 			);
+		ELSE
+			TRUNCATE TABLE procedureLog;
 		END IF;
 
 		CREATE TEMPORARY TABLE IF NOT EXISTS tmp_procedureLog (
@@ -54,7 +56,6 @@ DROP PROCEDURE IF EXISTS refreshProcedureLog //
 CREATE PROCEDURE refreshProcedureLog( )
 	BEGIN
 		CALL procedureLog( 'Finish Log' );
-		TRUNCATE TABLE procedureLog;
 		INSERT INTO procedureLog
 			SELECT
 				*
