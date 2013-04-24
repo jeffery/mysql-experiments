@@ -20,10 +20,10 @@ CREATE PROCEDURE pruneTableData(IN p_retention_days INT, IN tableName CHAR(64), 
     DECLARE c_table_name CURSOR FOR SELECT
                                       table_name
                                     FROM information_schema.tables
-                                    WHERE table_name = tableName;
+                                    WHERE table_schema = database() AND table_name = tableName;
     DECLARE CONTINUE HANDLER FOR SQLSTATE '02000' SET done = 1;
 
-    CALL proclog(CONCAT('Pruning Table: ', tableName, ' for Database ', DATABASE()));
+    CALL procedureLog(CONCAT('Pruning Table: ', tableName, ' for Database ', DATABASE()));
 
 -- if p_retention_days is null, we keep 365 days
     IF (p_retention_days IS NULL)
@@ -31,14 +31,14 @@ CREATE PROCEDURE pruneTableData(IN p_retention_days INT, IN tableName CHAR(64), 
       SET p_retention_days = 365;
     END IF;
 
-    CALL procLog(CONCAT('Retention Days: ', p_retention_days));
+    CALL procedureLog(CONCAT('Retention Days: ', p_retention_days));
 
 -- get the cutoff date - this is p_retention_days from midnight
     SELECT
       DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL p_retention_days DAY), '%Y-%m-%d')
     INTO l_cutoff_date;
 
-    CALL procLog(CONCAT('Cut Off Date: ', l_cutoff_date));
+    CALL procedureLog(CONCAT('Cut Off Date: ', l_cutoff_date));
 
 -- OPEN CURSOR
     OPEN c_table_name;
@@ -55,25 +55,27 @@ CREATE PROCEDURE pruneTableData(IN p_retention_days INT, IN tableName CHAR(64), 
       PREPARE sqlquery FROM @sqlstatement;
       EXECUTE sqlquery;
       DEALLOCATE PREPARE sqlquery;
-      CALL procLog(CONCAT('Create New Table: ', sql_create_table));
+      CALL procedureLog(CONCAT('Create New Table: ', sql_create_table));
 
 -- RENAME TABLES
-      SET sql_rename_table = CONCAT('RENAME TABLE `', l_table_name, '` TO `old_', l_table_name, '`, `new_', l_table_name, '` TO `', l_table_name, '`');
+      SET sql_rename_table = CONCAT('RENAME TABLE `', l_table_name, '` TO `old_', l_table_name, '`, `new_',
+                                    l_table_name, '` TO `', l_table_name, '`');
 -- SELECT sql_rename_table;
       SET @sqlstatement = sql_rename_table;
       PREPARE sqlquery FROM @sqlstatement;
       EXECUTE sqlquery;
       DEALLOCATE PREPARE sqlquery;
-      CALL procLog(CONCAT('Rename Tables: ', sql_rename_table));
+      CALL procedureLog(CONCAT('Rename Tables: ', sql_rename_table));
 
 -- COPY LAST 'n' DAYS DATA BACK INTO THE SOURCE TABLE
-      SET sql_reload_table = CONCAT('INSERT INTO `', l_table_name, '` SELECT * FROM `old_', l_table_name, '` WHERE ', columnName ,' >= ', "'", l_cutoff_date, "'");
+      SET sql_reload_table = CONCAT('INSERT INTO `', l_table_name, '` SELECT * FROM `old_', l_table_name, '` WHERE ',
+                                    columnName, ' >= ', "'", l_cutoff_date, "'");
 -- SELECT sql_reload_table;
       SET @sqlstatement = sql_reload_table;
       PREPARE sqlquery FROM @sqlstatement;
       EXECUTE sqlquery;
       DEALLOCATE PREPARE sqlquery;
-      CALL procLog(CONCAT('Reload Tables: ', sql_reload_table));
+      CALL procedureLog(CONCAT('Reload Tables: ', sql_reload_table));
 
 -- DROP NEW TABLE
       SET sql_drop_table = CONCAT('DROP TABLE IF EXISTS `old_', l_table_name, '`');
@@ -82,7 +84,7 @@ CREATE PROCEDURE pruneTableData(IN p_retention_days INT, IN tableName CHAR(64), 
       PREPARE sqlquery FROM @sqlstatement;
       EXECUTE sqlquery;
       DEALLOCATE PREPARE sqlquery;
-      CALL procLog(CONCAT('Cleanup Tables: ', sql_drop_table));
+      CALL procedureLog(CONCAT('Cleanup Tables: ', sql_drop_table));
 
 -- CLOSE CURSOR
     END IF;

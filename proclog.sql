@@ -1,70 +1,65 @@
 DELIMITER //
 
-DROP PROCEDURE IF EXISTS setupProcLog //
-CREATE PROCEDURE setupProcLog()
+DROP PROCEDURE IF EXISTS setupProcedureLog //
+CREATE PROCEDURE setupProcedureLog()
   BEGIN
-    DECLARE proclog_exists INT DEFAULT 0;
+    DECLARE procedureLogExists INT DEFAULT 0;
 
-/*
- * check if proclog is existing. This check seems redundant, but
- * simply relying on 'create table if not exists' is not enough because
- * a warning is thrown which will be caught by your exception handler
-*/
     SELECT
       count(*)
-    INTO proclog_exists
+    INTO procedureLogExists
     FROM information_schema.tables
-    WHERE table_schema = database() AND table_name = 'proclog';
+    WHERE table_schema = database() AND table_name = 'procedureLog';
 
-    IF proclog_exists = 0
+    IF procedureLogExists = 0
     THEN
-      CREATE TABLE IF NOT EXISTS proclog (
-        id            INT(2) UNSIGNED NOT NULL AUTO_INCREMENT,
-        entrytime     DATETIME,
-        connection_id INT             NOT NULL DEFAULT 0,
-        msg           VARCHAR(512),
+      CREATE TABLE IF NOT EXISTS procedureLog (
+        id           INT(2) UNSIGNED NOT NULL AUTO_INCREMENT,
+        logTime      DATETIME,
+        connectionId INT             NOT NULL DEFAULT 0,
+        logMessage   VARCHAR(512),
         PRIMARY KEY (id)
       );
     END IF;
 
-/*
- * temp table is not checked in information_schema because it is a temp
- * table
- */
-    CREATE TEMPORARY TABLE IF NOT EXISTS tmp_proclog (
-      id            INT(2) UNSIGNED NOT NULL AUTO_INCREMENT,
-      entrytime     TIMESTAMP,
-      connection_id INT             NOT NULL DEFAULT 0,
-      msg           VARCHAR(512),
+    CREATE TEMPORARY TABLE IF NOT EXISTS tmp_procedureLog (
+      id           INT(2) UNSIGNED NOT NULL AUTO_INCREMENT,
+      logTime      TIMESTAMP,
+      connectionId INT             NOT NULL DEFAULT 0,
+      logMessage   VARCHAR(512),
       PRIMARY KEY (id)
     )
       ENGINE = MEMORY;
 
-  END //
+  END
+//
 
-DROP PROCEDURE IF EXISTS procLog //
 
-CREATE PROCEDURE procLog(IN logMsg VARCHAR(512))
+DROP PROCEDURE IF EXISTS procedureLog //
+CREATE PROCEDURE procedureLog(IN logMsg VARCHAR(512))
   BEGIN
-    DECLARE CONTINUE HANDLER FOR 1146 -- Table not found
+      DECLARE CONTINUE HANDLER FOR SQLSTATE '42S02' -- Table not found
     BEGIN
-      CALL setupProcLog();
-      INSERT INTO tmp_proclog (connection_id, msg) VALUES (connection_id(), 'reset tmp table');
-      INSERT INTO tmp_proclog (connection_id, msg) VALUES (connection_id(), logMsg);
+      CALL setupProcedureLog();
+      INSERT INTO tmp_procedureLog (connectionId, logMessage) VALUES (connection_id(), 'Start Log');
+      INSERT INTO tmp_procedureLog (connectionId, logMessage) VALUES (connection_id(), logMsg);
     END;
 
-    INSERT INTO tmp_proclog (connection_id, msg) VALUES (connection_id(), logMsg);
-  END //
+    INSERT INTO tmp_procedureLog (connectionId, logMessage) VALUES (connection_id(), logMsg);
+  END
+//
 
-DROP PROCEDURE IF EXISTS cleanup //
-CREATE PROCEDURE cleanup(IN logMsg VARCHAR(512))
+
+DROP PROCEDURE IF EXISTS refreshProcedureLog //
+CREATE PROCEDURE refreshProcedureLog()
   BEGIN
-    CALL procLog(concat("cleanup() ", ifnull(logMsg, '')));
-    TRUNCATE TABLE proclog;
-    INSERT INTO proclog SELECT
-                          *
-                        FROM tmp_proclog;
-    DROP TABLE tmp_proclog;
-  END //
+    CALL procedureLog('Finish Log');
+    TRUNCATE TABLE procedureLog;
+    INSERT INTO procedureLog SELECT
+                               *
+                             FROM tmp_procedureLog;
+    DROP TABLE tmp_procedureLog;
+  END
+//
 
 DELIMITER ;
