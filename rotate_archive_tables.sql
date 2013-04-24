@@ -96,4 +96,4 @@ DELIMITER ;
 
 CALL rotate_archive_tables(1825);
 
-CALL refreshProcedureLog();
+CALL commitProcedureLog();

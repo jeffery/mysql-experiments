@@ -52,8 +52,8 @@ CREATE PROCEDURE procedureLog( IN logMsg VARCHAR(512) )
 //
 
 
-DROP PROCEDURE IF EXISTS refreshProcedureLog //
-CREATE PROCEDURE refreshProcedureLog( )
+DROP PROCEDURE IF EXISTS commitProcedureLog //
+CREATE PROCEDURE commitProcedureLog( )
 	BEGIN
 		CALL procedureLog( 'Finish Log' );
 		INSERT INTO procedureLog
