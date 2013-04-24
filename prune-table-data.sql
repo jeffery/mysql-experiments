@@ -1,14 +1,13 @@
-CALL setupProcLog();
+DELIMITER //
 
-DELIMITER $$
-
-DROP PROCEDURE IF EXISTS `mysql_experiments`.`rotate_archive_tables`$$
-CREATE PROCEDURE `mysql_experiments`.`rotate_archive_tables`(IN p_retention_days INT)
-  BEGIN
 /*
- * Script to keep at least p_retention_days worth of data in the archive tables.
+ * Script to keep at least p_retention_days worth of data in the mysql tables.
  * We select from information schema, and use a whole lot of dynamic sql.
  */
+DROP PROCEDURE IF EXISTS pruneTableData //
+CREATE PROCEDURE pruneTableData(IN p_retention_days INT, IN tableName CHAR(64), IN columnName CHAR(64))
+  COMMENT 'Procedure to Prune Database table by a calculated data column'
+  BEGIN
 
     DECLARE l_cutoff_date CHAR(10);
     DECLARE l_table_name VARCHAR(100);
@@ -19,12 +18,12 @@ CREATE PROCEDURE `mysql_experiments`.`rotate_archive_tables`(IN p_retention_days
 
     DECLARE done INT DEFAULT 0;
     DECLARE c_table_name CURSOR FOR SELECT
-                                      a.table_name
-                                    FROM information_schema.tables a
-                                    WHERE 1
-                                          AND a.engine = 'archive'
-                                          AND a.table_name = 'archive_table';
+                                      table_name
+                                    FROM information_schema.tables
+                                    WHERE table_name = tableName;
     DECLARE CONTINUE HANDLER FOR SQLSTATE '02000' SET done = 1;
+
+    CALL proclog(CONCAT('Pruning Table: ', tableName, ' for Database ', DATABASE()));
 
 -- if p_retention_days is null, we keep 365 days
     IF (p_retention_days IS NULL)
@@ -68,7 +67,7 @@ CREATE PROCEDURE `mysql_experiments`.`rotate_archive_tables`(IN p_retention_days
       CALL procLog(CONCAT('Rename Tables: ', sql_rename_table));
 
 -- COPY LAST 'n' DAYS DATA BACK INTO THE SOURCE TABLE
-      SET sql_reload_table = CONCAT('INSERT INTO `', l_table_name, '` SELECT * FROM `old_', l_table_name, '` WHERE createdDate >= ', "'", l_cutoff_date, "'");
+      SET sql_reload_table = CONCAT('INSERT INTO `', l_table_name, '` SELECT * FROM `old_', l_table_name, '` WHERE ', columnName ,' >= ', "'", l_cutoff_date, "'");
 -- SELECT sql_reload_table;
       SET @sqlstatement = sql_reload_table;
       PREPARE sqlquery FROM @sqlstatement;
@@ -90,10 +89,6 @@ CREATE PROCEDURE `mysql_experiments`.`rotate_archive_tables`(IN p_retention_days
     UNTIL done END REPEAT;
     CLOSE c_table_name;
 
-  END $$
+  END //
 
 DELIMITER ;
-
-CALL rotate_archive_tables(1825);
-
-CALL cleanup('Done');
