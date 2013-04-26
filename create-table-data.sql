@@ -24,7 +24,7 @@ CREATE PROCEDURE createTableData( IN tableName    CHAR(64), IN engineType CHAR(1
 		);
 		PREPARE createStatement FROM @createTable;
 		EXECUTE createStatement;
-		CALL procedureLog(CONCAT('Creating Table ',tableName));
+		CALL procedureLog( CONCAT( 'Creating Table ', tableName ) );
 
 		WHILE v < maximumRecords
 		DO
