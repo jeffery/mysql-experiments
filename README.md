@@ -19,6 +19,6 @@ Prune Table Tests - Generic
 Procedure Log
 ==
 
-	The stored procedure pruneTableData ( procedureLog.sql ) is used to log the
+	The stored procedure procedureLog ( procedureLog.sql ) is used to log the
 	actions performed by the above stored procedures
 
