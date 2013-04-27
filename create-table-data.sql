@@ -12,23 +12,11 @@ CREATE PROCEDURE createTableData( IN tableName    CHAR(64), IN engineType CHAR(1
 		DECLARE v INT DEFAULT 0;
 		SET @query = base_query;
 
-		SET @dropTable = CONCAT( 'DROP TABLE IF EXISTS ', tableName );
-		PREPARE dropStatement FROM @dropTable;
-		EXECUTE dropStatement;
-
-		SET @createTable = CONCAT( 'CREATE TABLE ', tableName, ' (
-        dataSerial int default NULL,
-        description varchar(30) default NULL,
-        createdDate date default NULL
-      ) engine=', engineType
-		);
-		PREPARE createStatement FROM @createTable;
-		EXECUTE createStatement;
-		CALL procedureLog( CONCAT( 'Creating Table ', tableName ) );
+		CALL createTable( tableName, engineType );
 
 		WHILE v < maximumRecords
 		DO
-		IF (counter = rowsPerQuery)
+		IF ( counter = rowsPerQuery )
 		THEN
 			SET first_loop = TRUE;
 			SET counter = 0;
@@ -43,7 +31,7 @@ CREATE PROCEDURE createTableData( IN tableName    CHAR(64), IN engineType CHAR(1
 				, now( );
 		END IF;
 
-		IF (first_loop)
+		IF ( first_loop )
 		THEN
 			SET first_loop = FALSE;
 		ELSE
@@ -54,13 +42,13 @@ CREATE PROCEDURE createTableData( IN tableName    CHAR(64), IN engineType CHAR(1
 				@query,
 				'(', v, ',',
 				'"testing Data"', ',"',
-				adddate( '2003-01-01', (rand( v ) * 36520) MOD 3652 ), '")'
+				adddate( '2003-01-01', ( rand( v ) * 36520 ) MOD 3652 ), '")'
 		);
 		SET v = v + 1;
 		SET counter = counter + 1;
 		END WHILE;
 
-		IF (counter)
+		IF ( counter )
 		THEN
 			PREPARE q FROM @query;
 			EXECUTE q;

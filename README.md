@@ -16,6 +16,11 @@ Prune Table Tests - Generic
 	prune the table data on the basis of the data present in the createdDate
 	column of the table.
 
+Create Table - Generic
+==
+	The stored procedure createTable ( create-table.sql ) is used to create a
+    table of type engine. The table is dropped before re-creation.
+
 Procedure Log
 ==
 
