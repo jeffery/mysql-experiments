@@ -23,56 +23,63 @@ CREATE PROCEDURE createTable( IN tableName CHAR(64), IN engineType CHAR(10) )
 //
 
 
-DROP PROCEDURE IF EXISTS createTablePartitionedByRange //
+DROP PROCEDURE IF EXISTS createTablePartitionedByDateRange //
 
-CREATE PROCEDURE createTablePartitionedByRange( IN tableName            CHAR(64),
+CREATE PROCEDURE createTablePartitionedByDateRange( IN tableName            CHAR(64),
 																								IN engineType           CHAR(10),
 																								IN partitionRangeColumn CHAR(64),
-																								IN partitionRange       INT(3),
+																								IN partitionCount       INT(3),
 																								IN partitionRangeType   CHAR(1) )
 	BEGIN
 		DECLARE partitionCounter INT DEFAULT 0;
-		DECLARE currentYear, partitionYear INT;
+		DECLARE partitionRange CHAR(20) DEFAULT '';
+		DECLARE currentRange INT;
 		DECLARE createPartitionTable TEXT DEFAULT '';
 
-		SET currentYear = (
-			SELECT
-				YEAR( CURRENT_DATE( ) )
-		);
 		CALL procedureLog( 'Creating partitioned Table by Range' );
 
 		CALL createTable( tableName, engineType );
 
 		SET createPartitionTable = CONCAT(
 				createPartitionTable,
-				'ALTER TABLE ', tableName, ' PARTITION BY RANGE ( YEAR( ', partitionRangeColumn, ' ) ) ( '
+				'ALTER TABLE ',
+				tableName,
+				' PARTITION BY RANGE ( TO_DAYS( ',
+				partitionRangeColumn,
+				' ) ) ( '
 		);
 
-		WHILE partitionCounter < partitionRange
-		DO
-		SET partitionYear = currentYear - partitionRange + partitionCounter;
-		CALL procedureLog( CONCAT( 'Partitioning for Year: ', partitionYear ) );
+		REPEAT
+		SET currentRange = partitionCounter - partitionCount;
+		SET partitionRange = (
+			SELECT
+				CASE WHEN partitionRangeType = 'm' THEN
+					DATE_FORMAT( DATE_ADD( CURDATE( ), INTERVAL currentRange MONTH ), '%Y-%m-01' )
+				WHEN partitionRangeType = 'y' THEN
+					DATE_FORMAT( DATE_ADD( CURDATE( ), INTERVAL currentRange YEAR ), '%Y-01-01' )
+				END
+		);
+
+		CALL procedureLog( CONCAT( 'Partitioning for Range: ', partitionRange ) );
 
 		SET createPartitionTable = CONCAT(
 				createPartitionTable,
-				'PARTITION p', partitionCounter, ' VALUES LESS THAN (', partitionYear, '), '
+				'PARTITION p', partitionCounter, ' VALUES LESS THAN (TO_DAYS(',"'", partitionRange, "'",')), '
 		);
 		SET partitionCounter = partitionCounter + 1;
-		END WHILE;
+		UNTIL partitionCounter > partitionCount
+		END REPEAT;
 
 		SET createPartitionTable = CONCAT( createPartitionTable, 'PARTITION pMAX VALUES LESS THAN MAXVALUE ' );
 		SET createPartitionTable = CONCAT( createPartitionTable, 'ENGINE = ', engineType, ')' );
 
+		CALL procedureLog( CONCAT( 'Altering Table for partitions: ', createPartitionTable ) );
 		SET @sqlStatement = createPartitionTable;
 		PREPARE query FROM @sqlStatement;
 		EXECUTE query;
 		DEALLOCATE PREPARE query;
-		CALL procedureLog( CONCAT( 'Altering Table for partitions: ', createPartitionTable ) );
 
 	END
 //
 
 DELIMITER ;
-
-CALL createTablePartitionedByRange( 'partitioned_table', 'archive', 'createdDate', 20, 'y' );
-CALL commitProcedureLog( );
