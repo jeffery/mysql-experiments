@@ -12,7 +12,7 @@ CREATE PROCEDURE createTableData( IN tableName    CHAR(64), IN engineType CHAR(1
 		DECLARE v INT DEFAULT 0;
 		SET @query = base_query;
 
-		CALL createTable( tableName, engineType );
+		CALL createTable( tableName, engineType, NULL, NULL, NULL );
 
 		WHILE v < maximumRecords
 		DO

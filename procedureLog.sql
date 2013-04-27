@@ -17,7 +17,7 @@ CREATE PROCEDURE setupProcedureLog( )
 				id           INT(2) UNSIGNED NOT NULL AUTO_INCREMENT,
 				logTime      DATETIME,
 				connectionId INT             NOT NULL DEFAULT 0,
-				logMessage   VARCHAR(512),
+				logMessage   VARCHAR(1024),
 				PRIMARY KEY (id)
 			);
 		ELSE
@@ -28,7 +28,7 @@ CREATE PROCEDURE setupProcedureLog( )
 			id           INT(2) UNSIGNED NOT NULL AUTO_INCREMENT,
 			logTime      TIMESTAMP,
 			connectionId INT             NOT NULL DEFAULT 0,
-			logMessage   VARCHAR(512),
+			logMessage   VARCHAR(1024),
 			PRIMARY KEY (id)
 		)
 			ENGINE = MEMORY;
@@ -38,7 +38,7 @@ CREATE PROCEDURE setupProcedureLog( )
 
 
 DROP PROCEDURE IF EXISTS procedureLog //
-CREATE PROCEDURE procedureLog( IN logMsg VARCHAR(512) )
+CREATE PROCEDURE procedureLog( IN logMsg VARCHAR(1024) )
 	BEGIN
 		DECLARE CONTINUE HANDLER FOR SQLSTATE '42S02' -- Table not found
 		BEGIN
