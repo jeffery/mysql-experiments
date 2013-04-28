@@ -18,7 +18,7 @@ CREATE PROCEDURE createTable( IN tableName CHAR(64), IN engineType CHAR(10) )
 
 		PREPARE createStatement FROM @createTable;
 		EXECUTE createStatement;
-		CALL procedureLog( CONCAT( 'Creating Table ', tableName ) );
+		CALL procedureLog( CONCAT( 'Creating Table ', @createTable ) );
 	END
 //
 
@@ -26,10 +26,10 @@ CREATE PROCEDURE createTable( IN tableName CHAR(64), IN engineType CHAR(10) )
 DROP PROCEDURE IF EXISTS createTablePartitionedByDateRange //
 
 CREATE PROCEDURE createTablePartitionedByDateRange( IN tableName            CHAR(64),
-																								IN engineType           CHAR(10),
-																								IN partitionRangeColumn CHAR(64),
-																								IN partitionCount       INT(3),
-																								IN partitionRangeType   CHAR(1) )
+																										IN engineType           CHAR(10),
+																										IN partitionRangeColumn CHAR(64),
+																										IN partitionCount       INT(3),
+																										IN partitionRangeType   CHAR(1) )
 	BEGIN
 		DECLARE partitionCounter INT DEFAULT 0;
 		DECLARE partitionRange CHAR(20) DEFAULT '';
@@ -53,7 +53,10 @@ CREATE PROCEDURE createTablePartitionedByDateRange( IN tableName            CHAR
 		SET currentRange = partitionCounter - partitionCount;
 		SET partitionRange = (
 			SELECT
-				CASE WHEN partitionRangeType = 'm' THEN
+				CASE
+				WHEN partitionRangeType = 'd' THEN
+					DATE_FORMAT( DATE_ADD( CURDATE( ), INTERVAL currentRange DAY ), '%Y-%m-%d' )
+				WHEN partitionRangeType = 'm' THEN
 					DATE_FORMAT( DATE_ADD( CURDATE( ), INTERVAL currentRange MONTH ), '%Y-%m-01' )
 				WHEN partitionRangeType = 'y' THEN
 					DATE_FORMAT( DATE_ADD( CURDATE( ), INTERVAL currentRange YEAR ), '%Y-01-01' )
@@ -64,7 +67,7 @@ CREATE PROCEDURE createTablePartitionedByDateRange( IN tableName            CHAR
 
 		SET createPartitionTable = CONCAT(
 				createPartitionTable,
-				'PARTITION p', partitionCounter, ' VALUES LESS THAN (TO_DAYS(',"'", partitionRange, "'",')), '
+				'PARTITION p', partitionCounter, ' VALUES LESS THAN (TO_DAYS(', "'", partitionRange, "'", ')), '
 		);
 		SET partitionCounter = partitionCounter + 1;
 		UNTIL partitionCounter > partitionCount

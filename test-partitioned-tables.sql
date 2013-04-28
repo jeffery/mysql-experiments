@@ -1,6 +1,6 @@
 CALL createTableData( 'raw_table_data', 'myisam', 5000000, 1000 );
 
-CALL createTablePartitionedByDateRange( 'partitioned_table', 'archive', 'createdDate', 10, 'y' );
+CALL createTablePartitionedByDateRange( 'partitioned_table', 'archive', 'createdDate', 100, 'd' );
 
 CALL commitProcedureLog( );
 
