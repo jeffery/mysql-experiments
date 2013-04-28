@@ -44,9 +44,9 @@ CREATE PROCEDURE createTablePartitionedByDateRange( IN tableName            CHAR
 				createPartitionTable,
 				'ALTER TABLE ',
 				tableName,
-				' PARTITION BY RANGE ( TO_DAYS( ',
+				' PARTITION BY RANGE COLUMNS ( ',
 				partitionRangeColumn,
-				' ) ) ( '
+				' ) ( '
 		);
 
 		REPEAT
@@ -67,7 +67,7 @@ CREATE PROCEDURE createTablePartitionedByDateRange( IN tableName            CHAR
 
 		SET createPartitionTable = CONCAT(
 				createPartitionTable,
-				'PARTITION p', partitionCounter, ' VALUES LESS THAN (TO_DAYS(', "'", partitionRange, "'", ')), '
+				'PARTITION p', partitionCounter, ' VALUES LESS THAN (', "'", partitionRange, "'", '), '
 		);
 		SET partitionCounter = partitionCounter + 1;
 		UNTIL partitionCounter > partitionCount
