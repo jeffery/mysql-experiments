@@ -5,10 +5,10 @@ DROP PROCEDURE IF EXISTS partitionTableByDateRange //
 CREATE PROCEDURE partitionTableByDateRange( IN tableName            CHAR(64),
 																						IN engineType           CHAR(10),
 																						IN partitionRangeColumn CHAR(64),
-																						IN partitionCount       INT(3),
 																						IN partitionRangeType   CHAR(1) )
 	BEGIN
 		DECLARE partitionCounter INT DEFAULT 0;
+		DECLARE partitionCount INT DEFAULT 0;
 		DECLARE partitionRange CHAR(20) DEFAULT '';
 		DECLARE currentRange INT;
 		DECLARE createPartitionTable TEXT DEFAULT '';
@@ -16,6 +16,8 @@ CREATE PROCEDURE partitionTableByDateRange( IN tableName            CHAR(64),
 		DECLARE dateDistance INT DEFAULT 0;
 		DECLARE tableNotCreated CONDITION FOR SQLSTATE '42S02';
 		DECLARE errorMessage TEXT DEFAULT '';
+		DECLARE currentDatabase CHAR(64) DEFAULT DATABASE( );
+
 
 		DECLARE CONTINUE HANDLER FOR tableNotCreated
 		BEGIN
@@ -26,11 +28,13 @@ CREATE PROCEDURE partitionTableByDateRange( IN tableName            CHAR(64),
 			SET MESSAGE_TEXT = errorMessage;
 		END;
 
+		CALL procedureLog( CONCAT( 'Database is ', currentDatabase ) );
+
 		SELECT
 			count( * )
 		INTO alterTableExists
 		FROM information_schema.tables
-		WHERE table_schema = DATABASE() AND table_name = tableName;
+		WHERE table_schema = currentDatabase AND table_name = tableName;
 
 		IF alterTableExists = 0
 		THEN
@@ -38,30 +42,43 @@ CREATE PROCEDURE partitionTableByDateRange( IN tableName            CHAR(64),
 			SET MESSAGE_TEXT = 'Table does not exist, cannot alter non existent table';
 		END IF;
 
-		CALL procedureLog( CONCAT( 'Modifying table ', tableName, ', Partitioned by Date Range' ) );
+		CALL procedureLog(
+				CONCAT(
+						'Modifying table ',
+						tableName,
+						', Partitioned by Date Range: ',
+						alterTableExists
+				)
+		);
 
-		SELECT
-			DATEDIFF( MAX( createdDate ), MIN( createdDate ) )
-		INTO dateDistance
-		FROM tableName;
+		SET @distance := 0;
+		SET @dateSql := CONCAT(
+				'SELECT DATEDIFF( MAX( createdDate ), MIN( createdDate ) ) INTO @distance FROM ',
+				tableName
+		);
+		PREPARE statement FROM @dateSql;
+		EXECUTE statement;
+		DEALLOCATE PREPARE statement;
+		SET dateDistance = @distance;
 
+		CALL procedureLog( CONCAT( 'Date Distance is ', dateDistance, ' days' ) );
 
-		CALL procedureLog( CONCAT( 'Date Distance is ', dateDistance ) );
-
-		IF ( dateDistance != NULL AND dateDistance > 0 )
+		IF ( dateDistance > 0 )
 		THEN
 			BEGIN
-				IF ( dateDistance > 31146 AND dateDistance <= 373760 OR dateDistance <= 373760 AND partitionRangeType = 'y' )
+				IF ( ( dateDistance > 31146 AND dateDistance <= 373760 ) OR
+						 ( dateDistance <= 373760 AND partitionRangeType = 'y' ) )
 				-- 373,760 days = 1024 years
 				THEN
 					SET partitionRangeType = 'y';
-					SET partitionCount = dateDistance * CEIL( 1 / 365 );
-				ELSEIF ( dateDistance > 1024 AND dateDistance <= 31146 OR dateDistance <= 31146 AND partitionRangeType = 'm' )
+					SET partitionCount = CEIL( dateDistance * 1 / 365 );
+				ELSEIF ( ( dateDistance > 1024 AND dateDistance <= 31146 ) OR
+								 ( dateDistance <= 31146 AND partitionRangeType = 'm' ) )
 					-- 31146 days = 1024 months
 					THEN
 						SET partitionRangeType = 'm';
-						SET partitionCount = dateDistance * CEIL( 12 / 365 );
-				ELSEIF ( dateDistance <= 1024 OR partitionRangeType = 'd' )
+						SET partitionCount = CEIL( dateDistance * 12 / 365 );
+				ELSEIF ( dateDistance <= 1024 AND partitionRangeType = 'd' )
 					-- 1024 partitions is the limit
 					THEN
 						SET partitionCount = dateDistance;
@@ -77,6 +94,8 @@ CREATE PROCEDURE partitionTableByDateRange( IN tableName            CHAR(64),
 			SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'The table being partitioned should contain some data to determine the partitioning scheme';
 		END IF;
+
+		CALL procedureLog( CONCAT( 'Partition count is ', partitionCount, ' for partition type ', partitionRangeType ) );
 
 		SET createPartitionTable = CONCAT(
 				createPartitionTable,
@@ -119,6 +138,6 @@ CREATE PROCEDURE partitionTableByDateRange( IN tableName            CHAR(64),
 		PREPARE query FROM @sqlStatement;
 		EXECUTE query;
 		DEALLOCATE PREPARE query;
-
 	END
 //
+DELIMITER ;
