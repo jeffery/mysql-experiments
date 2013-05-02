@@ -7,7 +7,7 @@ CREATE PROCEDURE partitionTableByDateRange( IN tableName            CHAR(64),
 																						IN partitionRangeColumn CHAR(64),
 																						IN partitionRangeType   CHAR(1) )
 	BEGIN
-		DECLARE partitionCounter INT DEFAULT 0;
+		DECLARE partitionCounter INT DEFAULT 1;
 		DECLARE partitionCount INT DEFAULT 0;
 		DECLARE partitionRange CHAR(20) DEFAULT '';
 		DECLARE currentRange INT;
@@ -71,13 +71,13 @@ CREATE PROCEDURE partitionTableByDateRange( IN tableName            CHAR(64),
 				-- 373,760 days = 1024 years
 				THEN
 					SET partitionRangeType = 'y';
-					SET partitionCount = CEIL( dateDistance * 1 / 365 );
+					SET partitionCount = FLOOR( dateDistance * 1 / 365 );
 				ELSEIF ( ( dateDistance > 1024 AND dateDistance <= 31146 ) OR
 								 ( dateDistance <= 31146 AND partitionRangeType = 'm' ) )
 					-- 31146 days = 1024 months
 					THEN
 						SET partitionRangeType = 'm';
-						SET partitionCount = CEIL( dateDistance * 12 / 365 );
+						SET partitionCount = FLOOR( dateDistance * 12 / 365 );
 				ELSEIF ( dateDistance <= 1024 AND partitionRangeType = 'd' )
 					-- 1024 partitions is the limit
 					THEN
