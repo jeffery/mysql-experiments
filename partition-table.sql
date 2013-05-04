@@ -18,7 +18,6 @@ CREATE PROCEDURE partitionTableByDateRange( IN tableName            CHAR(64),
 		DECLARE errorMessage TEXT DEFAULT '';
 		DECLARE currentDatabase CHAR(64) DEFAULT DATABASE( );
 
-
 		DECLARE CONTINUE HANDLER FOR tableNotCreated
 		BEGIN
 			SET errorMessage = CONCAT( 'Table ', tableName, ' does not exist, cannot alter non existent table' );

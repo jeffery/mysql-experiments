@@ -2,61 +2,69 @@ DELIMITER //
 
 DROP PROCEDURE IF EXISTS createTableData //
 
-CREATE PROCEDURE createTableData(IN tableName      CHAR(64),
-                                 IN engineType     CHAR(10),
-                                 IN maximumRecords INT,
-                                 IN rowsPerQuery   INT)
-  BEGIN
-    DECLARE counter INT DEFAULT 0;
-    DECLARE step INT DEFAULT 0;
-    DECLARE base_query VARCHAR(100) DEFAULT CONCAT('INSERT INTO ', tableName, ' VALUES ');
-    DECLARE first_loop BOOLEAN DEFAULT TRUE;
-    DECLARE v INT DEFAULT 0;
-    SET @query = base_query;
+CREATE PROCEDURE createTableData( IN tableName      CHAR(64),
+																	IN engineType     CHAR(10),
+																	IN maximumRecords INT,
+																	IN dataDays       INT,
+																	IN startDate      CHAR(10) )
+	BEGIN
+		DECLARE counter INT DEFAULT 0;
+		DECLARE step INT DEFAULT 0;
+		DECLARE base_query VARCHAR(100) DEFAULT CONCAT( 'INSERT INTO ', tableName, ' VALUES ' );
+		DECLARE first_loop BOOLEAN DEFAULT TRUE;
+		DECLARE recordCount INT DEFAULT 0;
+		DECLARE rowsPerQuery INT DEFAULT 1000;
+		SET @query = base_query;
 
-    CALL createTable(tableName, engineType);
+		CALL createTable( tableName, engineType );
 
-    WHILE v < maximumRecords
-    DO
-    IF (counter = rowsPerQuery)
-    THEN
-      SET first_loop = TRUE;
-      SET counter = 0;
-      PREPARE q FROM @query;
-      EXECUTE q;
-      DEALLOCATE PREPARE q;
-      SET @query = base_query;
-      SET step = step + 1;
-      SELECT
-        step,
-        v,
-        now();
-    END IF;
+		WHILE recordCount < maximumRecords
+		DO
+		IF ( counter = rowsPerQuery )
+		THEN
+			SET first_loop = TRUE;
+			SET counter = 0;
+			PREPARE q FROM @query;
+			EXECUTE q;
+			DEALLOCATE PREPARE q;
+			SET @query = base_query;
+			SET step = step + 1;
+			SELECT
+				step
+				, recordCount
+				, now( );
+		END IF;
 
-    IF (first_loop)
-    THEN
-      SET first_loop = FALSE;
-    ELSE
-      SET @query = concat(@query, ',');
-    END IF;
+		IF ( first_loop )
+		THEN
+			SET first_loop = FALSE;
+		ELSE
+			SET @query = concat( @query, ',' );
+		END IF;
 
-    SET @query = CONCAT(
-        @query,
-        '(', v, ',',
-        '"testing Data"', ',"',
-        adddate('2003-01-01', (rand(v) * 36520) MOD 3652), '")'
-    );
-    SET v = v + 1;
-    SET counter = counter + 1;
-    END WHILE;
+		SET @queryFragment = CONCAT(
+				'(',
+				recordCount,
+				',', "'", 'Testing Data', "'",
+				',', "'", startDate, "'", ' + INTERVAL ', FLOOR( RAND( ) * dataDays ), ' DAY',
+				')'
+		);
 
-    IF (counter)
-    THEN
-      PREPARE q FROM @query;
-      EXECUTE q;
-      DEALLOCATE PREPARE q;
-    END IF;
+		SET @query = CONCAT(
+				@query,
+				@queryFragment
+		);
+		SET recordCount = recordCount + 1;
+		SET counter = counter + 1;
+		END WHILE;
 
-  END
+		IF ( counter )
+		THEN
+			PREPARE q FROM @query;
+			EXECUTE q;
+			DEALLOCATE PREPARE q;
+		END IF;
+
+	END
 //
 DELIMITER ;
