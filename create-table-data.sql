@@ -10,11 +10,11 @@ CREATE PROCEDURE createTableData( IN tableName      CHAR(64),
 	BEGIN
 		DECLARE counter INT DEFAULT 0;
 		DECLARE step INT DEFAULT 0;
-		DECLARE base_query VARCHAR(100) DEFAULT CONCAT( 'INSERT INTO ', tableName, ' VALUES ' );
-		DECLARE first_loop BOOLEAN DEFAULT TRUE;
+		DECLARE baseQuery VARCHAR(100) DEFAULT CONCAT( 'INSERT INTO ', tableName, ' VALUES ' );
+		DECLARE firstLoop BOOLEAN DEFAULT TRUE;
 		DECLARE recordCount INT DEFAULT 0;
 		DECLARE rowsPerQuery INT DEFAULT 1000;
-		SET @query = base_query;
+		SET @fullQuery = baseQuery;
 
 		CALL createTable( tableName, engineType );
 
@@ -22,12 +22,12 @@ CREATE PROCEDURE createTableData( IN tableName      CHAR(64),
 		DO
 		IF ( counter = rowsPerQuery )
 		THEN
-			SET first_loop = TRUE;
+			SET firstLoop = TRUE;
 			SET counter = 0;
-			PREPARE q FROM @query;
-			EXECUTE q;
-			DEALLOCATE PREPARE q;
-			SET @query = base_query;
+			PREPARE preparedStatement FROM @fullQuery;
+			EXECUTE preparedStatement;
+			DEALLOCATE PREPARE preparedStatement;
+			SET @fullQuery = baseQuery;
 			SET step = step + 1;
 			SELECT
 				step
@@ -35,11 +35,11 @@ CREATE PROCEDURE createTableData( IN tableName      CHAR(64),
 				, now( );
 		END IF;
 
-		IF ( first_loop )
+		IF ( firstLoop )
 		THEN
-			SET first_loop = FALSE;
+			SET firstLoop = FALSE;
 		ELSE
-			SET @query = concat( @query, ',' );
+			SET @fullQuery = concat( @fullQuery, ',' );
 		END IF;
 
 		SET @queryFragment = CONCAT(
@@ -50,8 +50,8 @@ CREATE PROCEDURE createTableData( IN tableName      CHAR(64),
 				')'
 		);
 
-		SET @query = CONCAT(
-				@query,
+		SET @fullQuery = CONCAT(
+				@fullQuery,
 				@queryFragment
 		);
 		SET recordCount = recordCount + 1;
@@ -60,9 +60,9 @@ CREATE PROCEDURE createTableData( IN tableName      CHAR(64),
 
 		IF ( counter )
 		THEN
-			PREPARE q FROM @query;
-			EXECUTE q;
-			DEALLOCATE PREPARE q;
+			PREPARE preparedStatement FROM @fullQuery;
+			EXECUTE preparedStatement;
+			DEALLOCATE PREPARE preparedStatement;
 		END IF;
 
 	END
