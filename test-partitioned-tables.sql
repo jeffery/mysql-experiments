@@ -17,7 +17,7 @@ INSERT INTO partitioned_table
 		*
 	FROM raw_table_data;
 
-CALL partitionTableByDateRange( 'partitioned_table', 'innodb', 'createdDate', 'y' );
+CALL partitionTableByDateRange( 'partitioned_table', 'archive', 'createdDate', 'y' );
 SHOW ERRORS LIMIT 1;
 CALL commitProcedureLog;
 
