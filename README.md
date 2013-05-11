@@ -3,8 +3,8 @@ mysql-experiments
 
 Various MySQL/MariaDB database experiments, mostly stored procedures
 
-Prune Table Tests - test-prune-tables.sql
-=========================================
+Prune Table Tests
+=================
 
 This test is performed to see how fast a large data-set can be pruned given the
 number of days, data is to be retained.
@@ -21,15 +21,15 @@ The logic of pruning is based on copying the 'good' data to a new table and then
 re-naming the tables. This consumes time and disk IO.
 
 
-Partitioning Table Tests - test-partitioned-tables.sql
-======================================================
+Partitioning Table Tests
+========================
 
 This test is performed to see how fast queries are returned from a partitioned
 table, compared to a non-partitioned table.
 
-The stored procedure partitionTableByDateRange is used to create partitions by
-Date range on a table which has a date column. The procedure accepts four
-arguments:
+The stored procedure partitionTableByDateRange ( partition-table.sql ) is used
+to create partitions by Date range on a table which has a date column. The
+procedure accepts four arguments:
 
 	* Table name
 	* Table engine type
@@ -74,6 +74,6 @@ createTable
 Procedure Log
 =============
 
-The stored procedure procedureLog ( procedureLog.sql ) is used to log the
+The stored procedure procedureLog ( procedure-log.sql ) is used to log the
 actions performed by the above stored procedures
 
