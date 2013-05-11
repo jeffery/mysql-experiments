@@ -37,8 +37,8 @@ arguments:
 	* Partition range type. One of y, m or d
 
 
-Create Table - create-table.sql
-===============================
+Create Table
+============
 
 The stored procedure createTable ( create-table.sql ) is used to create a table
 of type engine. The table is dropped before re-creation. The table schema
@@ -54,11 +54,12 @@ The procedure accepts two arguments:
 	* Table engine type
 
 
-Create Table Data - create-table-data.sql
-=========================================
+Create Table Data
+=================
 
-The stored procedure createTableData is used to create test data for running
-various SQL performance tests. The procedure accepts five arguments:
+The stored procedure createTableData ( create-table-data.sql ) is used to
+create test data for running various SQL performance tests. The procedure
+accepts five arguments:
 
 	 * Table name
 	 * Table engine type
@@ -70,8 +71,8 @@ Before creating the data, it creates the table schema using the procedure
 createTable
 
 
-Procedure Log - procedure-log.sql
-================================
+Procedure Log
+=============
 
 The stored procedure procedureLog ( procedureLog.sql ) is used to log the
 actions performed by the above stored procedures
