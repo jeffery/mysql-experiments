@@ -19,7 +19,6 @@ INSERT INTO partitioned_table
 
 CALL partitionTableByDateRange( 'partitioned_table', 'archive', 'createdDate', 'y' );
 SHOW ERRORS LIMIT 1;
-CALL commitProcedureLog;
 
 
 SELECT

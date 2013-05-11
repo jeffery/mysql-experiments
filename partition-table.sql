@@ -22,7 +22,6 @@ CREATE PROCEDURE partitionTableByDateRange( IN tableName            CHAR(64),
 		BEGIN
 			SET errorMessage = CONCAT( 'Table ', tableName, ' does not exist, cannot alter non existent table' );
 			CALL procedureLog( errorMessage );
-			CALL commitProcedureLog;
 			SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = errorMessage;
 		END;
@@ -45,8 +44,7 @@ CREATE PROCEDURE partitionTableByDateRange( IN tableName            CHAR(64),
 				CONCAT(
 						'Modifying table ',
 						tableName,
-						', Partitioned by Date Range: ',
-						alterTableExists
+						', Partitioned by Date Range'
 				)
 		);
 
@@ -83,13 +81,11 @@ CREATE PROCEDURE partitionTableByDateRange( IN tableName            CHAR(64),
 						SET partitionCount = dateDistance;
 						SET partitionRangeType = 'd';
 				ELSE
-					CALL commitProcedureLog;
 					SIGNAL SQLSTATE '45000'
 					SET MESSAGE_TEXT = 'Could not calculate valid Partitioning scheme';
 				END IF;
 			END;
 		ELSE
-			CALL commitProcedureLog;
 			SIGNAL SQLSTATE '45000'
 			SET MESSAGE_TEXT = 'The table being partitioned should contain some data to determine the partitioning scheme';
 		END IF;

@@ -20,19 +20,8 @@ CREATE PROCEDURE setupProcedureLog( )
 				logMessage   VARCHAR(20000),
 				PRIMARY KEY (id)
 			);
-		ELSE
-			TRUNCATE TABLE procedureLog;
 		END IF;
-
-		CREATE TEMPORARY TABLE IF NOT EXISTS procedureLogMemory (
-			id           INT(2) UNSIGNED NOT NULL AUTO_INCREMENT,
-			logTime      TIMESTAMP,
-			connectionId INT             NOT NULL DEFAULT 0,
-			logMessage   VARCHAR(20000),
-			PRIMARY KEY (id)
-		)
-			ENGINE = MEMORY;
-
+		
 	END
 //
 
@@ -40,27 +29,26 @@ CREATE PROCEDURE setupProcedureLog( )
 DROP PROCEDURE IF EXISTS procedureLog //
 CREATE PROCEDURE procedureLog( IN logMsg VARCHAR(20000) )
 	BEGIN
+		DECLARE connectionIdentity INT DEFAULT 0;
+		DECLARE checkConnectionId INT DEFAULT 0;
+
 		DECLARE CONTINUE HANDLER FOR SQLSTATE '42S02' -- Table not found
 		BEGIN
-			CALL setupProcedureLog( );
-			INSERT INTO procedureLogMemory (connectionId, logMessage) VALUES (connection_id( ), 'Start Log');
-			INSERT INTO procedureLogMemory (connectionId, logMessage) VALUES (connection_id( ), logMsg);
+			CALL setupProcedureLog;
 		END;
 
-		INSERT INTO procedureLogMemory (connectionId, logMessage) VALUES (connection_id( ), logMsg);
-	END
-//
+		SELECT
+			count( * )
+		INTO checkConnectionId
+		FROM procedureLog
+		WHERE connectionId != CONNECTION_ID();
 
+		IF checkConnectionId > 0
+		THEN
+			TRUNCATE TABLE procedureLog;
+		END IF;
 
-DROP PROCEDURE IF EXISTS commitProcedureLog //
-CREATE PROCEDURE commitProcedureLog( )
-	BEGIN
-		CALL procedureLog( 'Finish Log' );
-		INSERT INTO procedureLog
-			SELECT
-				*
-			FROM procedureLogMemory;
-		DROP TABLE procedureLogMemory;
+		INSERT INTO procedureLog (logTime, connectionId, logMessage) VALUES ( NOW(), CONNECTION_ID(), logMsg );
 	END
 //
 
