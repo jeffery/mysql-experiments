@@ -51,8 +51,11 @@ CREATE PROCEDURE partitionTableByDateRange( IN tableName            CHAR(64),
 		SET @distance := 0;
 		SET @dateSql := CONCAT(
 				'SELECT DATEDIFF( MAX( ',partitionRangeColumn,' ), MIN( ',partitionRangeColumn,' ) ) INTO @distance FROM ',
-				tableName
+				tableName ,
+				' WHERE ',partitionRangeColumn,' != ', "'", '0000-00-00 00:00:00', "'"
 		);
+		CALL procedureLog( CONCAT( 'Date Distance SQL: ', @dateSql ) );
+
 		PREPARE statement FROM @dateSql;
 		EXECUTE statement;
 		DEALLOCATE PREPARE statement;
