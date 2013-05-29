@@ -50,7 +50,7 @@ CREATE PROCEDURE partitionTableByDateRange( IN tableName            CHAR(64),
 
 		SET @distance := 0;
 		SET @dateSql := CONCAT(
-				'SELECT DATEDIFF( MAX( createdDate ), MIN( createdDate ) ) INTO @distance FROM ',
+				'SELECT DATEDIFF( MAX( ',partitionRangeColumn,' ), MIN( ',partitionRangeColumn,' ) ) INTO @distance FROM ',
 				tableName
 		);
 		PREPARE statement FROM @dateSql;
